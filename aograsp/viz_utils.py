@@ -31,36 +31,74 @@ def viz_heatmap(
     draw_frame=False,
     scale_cmap_to_heatmap_range=False,
 ):
-    pcd = get_o3d_pts(all_pts)
+    pcd = get_o3d_pts(all_pts) 
+    # print('got pcd')
     cmap = matplotlib.cm.get_cmap("RdYlGn")
     if scale_cmap_to_heatmap_range:
         # Scale heatmap labels to [0,1] to index into cmap
         heatmap_labels = scale_to_0_1(heatmap_labels)
-    colors = cmap(np.squeeze(heatmap_labels))[:, :3]
-    pcd.colors = o3d.utility.Vector3dVector(colors)
+    colors = cmap(np.squeeze(heatmap_labels))[:, :3] 
+    colors_arr = np.array(colors, dtype=np.float64)
+    print(colors_arr.shape) 
+    if np.isnan(colors_arr).any():
+        print("Nan!!")
+    for c in colors:
+        if len(c) != 3:
+            print('wrong shape')
+        # print(c)
+    print(len(colors))
+    # vis = o3d.visualization.Visualizer() 
+    print('first o3d')
+    # vis = o3d.visualization.Visualizer() 
+    np_points = np.random.rand(100, 3)
 
-    # Plot and save without opening a window
-    vis = o3d.visualization.Visualizer()
-    vis.create_window()
-    vis.add_geometry(pcd)
-    vis.update_geometry(pcd)
+    # From numpy to Open3D
+    # pcd.points = o3d.utility.Vector3dVector(np_points)
+    print('demod')
+    a = o3d.utility.Vector3dVector(colors_arr) 
+    print('a: ', a)
+    pcd.colors = o3d.utility.Vector3dVector(colors_arr)
+
+    # Plot and save without opening a window 
+    # print('initialiazing visualizer')
+    vis = o3d.visualization.Visualizer() 
+    # print('creating window')
+    vis.create_window() 
+    # print('created window')
+    vis.add_geometry(pcd) 
+    # print('added geometry')
+    vis.update_geometry(pcd) 
+    # print('updated geometry')
 
     # Draw ref frame
-    if draw_frame:
+    if draw_frame: 
         mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(
             size=0.1, origin=[0, 0, 0]
         )
         vis.add_geometry(mesh_frame)
-
+    print('bump')
     if frame == "camera":
-        # If visualizing in camera frame, view pcd from scene view
-        ctr = vis.get_view_control()
-        param = ctr.convert_to_pinhole_camera_parameters()
-        fov = ctr.get_field_of_view()
+        # If visualizing in camera frame, view pcd from scene view 
+        print('camera')
+        ctr = vis.get_view_control() 
+        print(ctr)
+        param = ctr.convert_to_pinhole_camera_parameters() 
+        print('param: ', param)
+        fov = ctr.get_field_of_view() 
+        print(fov)
         H = np.eye(4)
-        H[2, 3] = 0.2  # Move camera back by 20cm
-        param.extrinsic = H
-        ctr.convert_from_pinhole_camera_parameters(param)
+        H[2, 3] = 0.2  # Move camera back by 20cm 
+        # H[2, 2] = 0.2 
+        # print('extrinsic: ', param.extrinsic) 
+        # param.extrinsic = np.asarray(H)
+        # for i in range(4):
+        #     for j in range(4):
+        #         param.extrinsic[i][j] = H[i, j]
+        # param.extrinsic[2, 3] = 0.2
+        # param.extrinsic[0, 0] = -1.0
+        # param.extrinsic[0, 3] = 2.0
+        ctr.convert_from_pinhole_camera_parameters(param) 
+        print('converted')
     else:
         # If world frame, place camera accordingly to face object front
         ctr = vis.get_view_control()
@@ -76,9 +114,12 @@ def viz_heatmap(
     vis.poll_events()
     vis.update_renderer()
 
+    save_path = None 
+    print('save path: ', save_path)
     if save_path is None:
         vis.run()
     else:
+        print('saving')
         vis.capture_screen_image(
             save_path,
             do_render=True,

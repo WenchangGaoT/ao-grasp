@@ -38,11 +38,13 @@ def get_heatmap(args):
     if pcd_ext == ".ply":
         # Open3d pointcloud
         pcd = o3d.io.read_point_cloud(args.pcd_path)
+        pcd = pcd.farthest_point_down_sample(4096)
         pts_arr = np.array(pcd.points)
     else:
         raise ValueError(f"{pcd_ext} filetype not supported")
 
-    # Recenter pcd to origin
+    # Recenter pcd to origin 
+    # pcd = pcd.farthest_point_down_sample(4096)
     mean = np.mean(pts_arr, axis=0)
     pts_arr -= mean
 
@@ -50,7 +52,9 @@ def get_heatmap(args):
     np.random.shuffle(pts_arr)
 
     # Get pts as tensor and create input dict for model
-    pts = torch.from_numpy(pts_arr).float().to(args.device)
+    pts = torch.from_numpy(pts_arr).float().to(args.device) 
+
+    print('Number of points: ', pts.shape[0])
     pts = torch.unsqueeze(pts, dim=0)
     input_dict = {"pcs": pts}
 
@@ -68,11 +72,14 @@ def get_heatmap(args):
         "pts": pts_arr + mean,  # Save original un-centered data
         "labels": scores,
     }
-    np.savez_compressed(pcd_path, data=heatmap_dict)
+    np.savez_compressed(pcd_path, data=heatmap_dict) 
+    print(pcd_path)
 
     # Save image of heatmap
     fig_path = os.path.join(point_score_img_dir, f"heatmap_{data_name}.png")
-    hist_path = os.path.join(point_score_img_dir, f"heatmap_{data_name}_hist.png")
+    hist_path = os.path.join(point_score_img_dir, f"heatmap_{data_name}_hist.png") 
+    print(point_score_img_dir) 
+    print(scores)
     try:
         v_utils.viz_heatmap(
             heatmap_dict["pts"],
